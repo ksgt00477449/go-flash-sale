@@ -1,6 +1,9 @@
 package main
 
 import (
+	"go-flash-sale/internal/handler"
+	"go-flash-sale/internal/repository"
+	"go-flash-sale/internal/service"
 	"log"
 	"net/http"
 
@@ -8,19 +11,24 @@ import (
 )
 
 func main() {
-	// 设置 Gin 为 release 模式（关闭调试日志）
 	gin.SetMode(gin.ReleaseMode)
-
 	r := gin.New()
-	r.Use(gin.Recovery()) // 自动恢复 panic
+	r.Use(gin.Recovery())
 
-	// 健康检查接口
-	r.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status":  "ok",
-			"service": "flashsale-go",
+	// 初始化依赖
+	userRepo := repository.NewUserRepository()
+	userService := service.NewUserService(userRepo)
+	userHandler := handler.NewUserHandler(userService)
+
+	// 路由
+	api := r.Group("/api/v1")
+	{
+		api.POST("/register", userHandler.Register)
+		api.POST("/login", userHandler.Login)
+		api.GET("/health", func(c *gin.Context) {
+			c.JSON(http.StatusOK, gin.H{"status": "ok"})
 		})
-	})
+	}
 
 	log.Println("🚀 FlashSale server starting on :8080")
 	if err := r.Run(":8080"); err != nil {
