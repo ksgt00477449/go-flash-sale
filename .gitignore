@@ -1,0 +1,17 @@
+# Binaries
+/bin/
+*.exe
+*.out
+
+# Logs
+*.log
+
+# Go
+/go/
+/vendor/
+
+# IDE
+.vscode/
+
+# Env
+.env
