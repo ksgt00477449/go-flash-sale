@@ -2,6 +2,7 @@ package main
 
 import (
 	"go-flash-sale/internal/handler"
+	"go-flash-sale/internal/model"
 	"go-flash-sale/internal/repository"
 	"go-flash-sale/internal/service"
 	"log"
@@ -15,6 +16,11 @@ func main() {
 	r := gin.New()
 	r.Use(gin.Recovery())
 
+	// 初始化数据库链接
+	repository.InitDB()
+
+	//// 自动迁移模式，创建或更新表结构
+	repository.DB.AutoMigrate(&model.User{})
 	// 初始化依赖
 	userRepo := repository.NewUserRepository()
 	userService := service.NewUserService(userRepo)
