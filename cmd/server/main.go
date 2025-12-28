@@ -18,6 +18,8 @@ func main() {
 
 	// 初始化数据库链接
 	repository.InitDB()
+	// 初始化Redis链接
+	repository.InitRedis()
 
 	//// 自动迁移模式，创建或更新表结构
 	repository.DB.AutoMigrate(&model.User{})

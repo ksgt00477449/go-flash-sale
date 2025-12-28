@@ -1,9 +1,12 @@
 package service
 
 import (
+	"context"
 	"errors"
+	"go-flash-sale/internal/auth"
 	"go-flash-sale/internal/model"
 	"go-flash-sale/internal/repository"
+	"time"
 
 	"github.com/go-sql-driver/mysql"
 	"golang.org/x/crypto/bcrypt"
@@ -39,16 +42,29 @@ func (s *UserService) Register(email, password string) error {
 	return nil
 }
 
-func (s *UserService) Login(email, password string) (bool, error) {
+func (s *UserService) Login(email, password string) (string, error) {
 	//从用户仓库查询用户信息 后改为从数据库查询
 	user, err := s.userRepo.GetByEmail(email)
 	if err != nil {
-		return false, errors.New("invalid email or password")
+		return "", errors.New("invalid email or password")
 	}
-	//
+
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return false, errors.New("invalid email or password")
+		return "", errors.New("invalid email or password")
 	}
-	return true, nil
+
+	//验证成功 签发token
+	jwtService := auth.NewJWTService()
+	tokenString, tokenID, err := jwtService.GenerateToken(user.ID, email)
+	if err != nil {
+		return "", err
+	}
+	//将tokenID存入redis
+	tokenStore := auth.NewTokenStore()
+	err = tokenStore.Save(context.Background(), tokenID, user.ID, 24*time.Hour)
+	if err != nil {
+		return "", err
+	}
+	return tokenString, nil
 }

@@ -47,15 +47,15 @@ func (h *UserHandler) Login(c *gin.Context) {
 		return
 	}
 
-	ok, err := h.userService.Login(req.Email, req.Password)
-	if err != nil || !ok {
+	token, err := h.userService.Login(req.Email, req.Password)
+	if err != nil && token == "" {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid email or password"})
 		return
 	}
 
-	// TODO: 生成 JWT Token（明天加）
+	// TODO: 生成 JWT Token
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Login successful",
-		"token":   "mock-token-for-now", // 明天替换为真实 JWT
+		"token":   token,
 	})
 }
