@@ -1,4 +1,4 @@
-package app
+package container
 
 import (
 	"go-flash-sale/internal/cache"
@@ -7,11 +7,13 @@ import (
 	"go-flash-sale/internal/service"
 
 	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 type Dependencies struct {
 	// Add fields for dependencies here, e.g. database connections, caches, etc.
 	RedisClient redis.UniversalClient //reids依赖
+	DB          *gorm.DB              //数据库依赖
 	UserService *service.UserService  //用户服务依赖
 }
 
@@ -32,6 +34,7 @@ func BuildDependencies() (*Dependencies, error) {
 
 	return &Dependencies{
 		RedisClient: redisClient,
+		DB:          db,
 		UserService: userService,
 	}, nil
 }

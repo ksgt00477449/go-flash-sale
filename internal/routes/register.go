@@ -1,23 +1,18 @@
-package app
+package routes
 
 import (
+	"go-flash-sale/internal/container"
 	"go-flash-sale/internal/handler"
 	"go-flash-sale/internal/initialization"
 	"go-flash-sale/internal/middleware"
-	"go-flash-sale/internal/routes"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
-func registerRoutes(deps *Dependencies) *gin.Engine {
+func RegisterRoutes(deps *container.Dependencies, middlewares *middleware.Middlewares) *gin.Engine {
 	r := initialization.InitRoute()
-	userHandler := handler.NewUserHandler(deps.UserService)
-	authMW := middleware.AuthMiddleware(deps.RedisClient)
-	_ = authMW // 防止未使用警告，后续可删除
-	// 全局中间件
-	corsMW := middleware.Cors()
-	r.Use(corsMW)
+	r.Use(middlewares.Cors)
 	//  注册公共路由
 	rg := r.Group("/api/v1")
 	{
@@ -26,6 +21,7 @@ func registerRoutes(deps *Dependencies) *gin.Engine {
 		})
 	}
 	// 业务路由注册
-	routes.InitUserRoute(rg, userHandler)
+	userHandler := handler.NewUserHandler(deps.UserService)
+	InitUserRoute(rg, userHandler, middlewares)
 	return r
 }
