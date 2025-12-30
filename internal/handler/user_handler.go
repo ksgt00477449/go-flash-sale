@@ -1,17 +1,25 @@
 package handler
 
 import (
+	"go-flash-sale/internal/cache"
+	"go-flash-sale/internal/repository"
 	"go-flash-sale/internal/service"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 type UserHandler struct {
 	userService *service.UserService
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
+func NewUserHandler(db *gorm.DB, redis redis.UniversalClient) *UserHandler {
+	userRepo := repository.NewUserRepository(db)
+	userCache := cache.NewUserCache(redis)
+	tokenCache := cache.NewTokenCache(redis)
+	userService := service.NewUserService(userRepo, userCache, tokenCache)
 	return &UserHandler{
 		userService: userService,
 	}

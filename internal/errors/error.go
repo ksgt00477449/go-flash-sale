@@ -1,7 +1,8 @@
-package auth
+package errors
 
 import "errors"
 
+// ==============token相关错误定义==================
 var (
 	ErrInvalidToken      = errors.New("invalid token")
 	ErrTokenExpired      = errors.New("token expired")

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"go-flash-sale/internal/auth"
+	"go-flash-sale/internal/cache"
 	"go-flash-sale/internal/model"
 	"go-flash-sale/internal/repository"
 	"time"
@@ -13,12 +14,16 @@ import (
 )
 
 type UserService struct {
-	userRepo *repository.UserRepository
+	userRepo   *repository.UserRepository
+	userCache  *cache.UserCache
+	tokenCache *cache.TokenCache
 }
 
-func NewUserService(userRepo *repository.UserRepository) *UserService {
+func NewUserService(userRepo *repository.UserRepository, userCache *cache.UserCache, tokenCache *cache.TokenCache) *UserService {
 	return &UserService{
-		userRepo: userRepo,
+		userRepo:   userRepo,
+		userCache:  userCache,
+		tokenCache: tokenCache,
 	}
 }
 
@@ -61,8 +66,7 @@ func (s *UserService) Login(email, password string) (string, error) {
 		return "", err
 	}
 	//将tokenID存入redis
-	tokenStore := auth.NewTokenStore()
-	err = tokenStore.Save(context.Background(), tokenID, user.ID, 24*time.Hour)
+	err = s.tokenCache.Save(context.Background(), tokenID, user.ID, 24*time.Hour)
 	if err != nil {
 		return "", err
 	}

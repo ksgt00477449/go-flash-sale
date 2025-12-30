@@ -1,31 +1,30 @@
-package auth
+package cache
 
 import (
 	"context"
 	"fmt"
-	"go-flash-sale/internal/repository"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 )
 
-// TokenStore 管理 JWT Token 的 Redis 存储
+// TokenCache 管理 JWT Token 的 Redis 存储
 // 用于支持 Token 主动失效（登出、踢下线等）
-type TokenStore struct {
+type TokenCache struct {
 	redisClient redis.UniversalClient // 使用 UniversalClient 支持单机/集群
 }
 
 // NewTokenStore 创建一个新的 TokenStore 实例
 // client: 已配置好的 Redis 客户端（建议全局复用）
-func NewTokenStore() *TokenStore {
-	return &TokenStore{
-		redisClient: repository.RedisCilent,
+func NewTokenCache(client redis.UniversalClient) *TokenCache {
+	return &TokenCache{
+		redisClient: client,
 	}
 }
 
 // Save 将 TokenID 与 UserID 的映射存入 Redis
 // ttl: Token 有效期（应与 JWT 的过期时间一致）
-func (ts *TokenStore) Save(ctx context.Context, tokenID string, userID uint, ttl time.Duration) error {
+func (ts *TokenCache) Save(ctx context.Context, tokenID string, userID uint, ttl time.Duration) error {
 	if tokenID == "" || userID == 0 {
 		return fmt.Errorf("invalid tokenID or userID")
 	}
@@ -38,7 +37,7 @@ func (ts *TokenStore) Save(ctx context.Context, tokenID string, userID uint, ttl
 	return nil
 }
 
-func (ts *TokenStore) Exists(ctx context.Context, tokenID string) (bool, error) {
+func (ts *TokenCache) Exists(ctx context.Context, tokenID string) (bool, error) {
 	if tokenID == "" {
 		return false, fmt.Errorf("tokenID is empty")
 	}
@@ -54,7 +53,7 @@ func (ts *TokenStore) Exists(ctx context.Context, tokenID string) (bool, error) 
 	return true, nil
 }
 
-func (ts *TokenStore) Delete(ctx context.Context, tokenID string) error {
+func (ts *TokenCache) Delete(ctx context.Context, tokenID string) error {
 	if tokenID == "" {
 		return fmt.Errorf("tokenID is empty")
 	}
@@ -67,7 +66,7 @@ func (ts *TokenStore) Delete(ctx context.Context, tokenID string) error {
 }
 
 // 通过 TokenID 获取对应的 UserID
-func (ts *TokenStore) GetUserID(ctx context.Context, tokenID string) (uint, error) {
+func (ts *TokenCache) GetUserID(ctx context.Context, tokenID string) (uint, error) {
 	if tokenID == "" {
 		return 0, fmt.Errorf("tokenID is empty")
 	}
@@ -88,7 +87,7 @@ func (ts *TokenStore) GetUserID(ctx context.Context, tokenID string) (uint, erro
 }
 
 // RefreshTTL 刷新 Token 在 Redis 中的过期时间
-func (ts *TokenStore) RefreshTTL(ctx context.Context, tokenID string, ttl time.Duration) error {
+func (ts *TokenCache) RefreshTTL(ctx context.Context, tokenID string, ttl time.Duration) error {
 	if tokenID == "" {
 		return fmt.Errorf("tokenID is empty")
 	}
@@ -101,7 +100,7 @@ func (ts *TokenStore) RefreshTTL(ctx context.Context, tokenID string, ttl time.D
 }
 
 // DeleteByUserID 根据 UserID 删除所有相关的 Token
-func (ts *TokenStore) DeleteByUserID(ctx context.Context, userID uint) error {
+func (ts *TokenCache) DeleteByUserID(ctx context.Context, userID uint) error {
 	if userID == 0 {
 		return fmt.Errorf("invalid userID")
 	}
@@ -132,6 +131,6 @@ func (ts *TokenStore) DeleteByUserID(ctx context.Context, userID uint) error {
 }
 
 // buildKey 构建 Redis Key（统一前缀，避免冲突）
-func (ts *TokenStore) buildKey(tokenID string) string {
+func (ts *TokenCache) buildKey(tokenID string) string {
 	return "auth:token:" + tokenID
 }

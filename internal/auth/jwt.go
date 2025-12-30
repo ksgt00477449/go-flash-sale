@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"go-flash-sale/internal/config"
+	myErr "go-flash-sale/internal/errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -49,9 +50,10 @@ func (j *jwtService) GenerateToken(userID uint, email string) (string, string, e
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims) // 以HS256加密方式生成token
+	//
 	tokenString, err := token.SignedString([]byte(j.secretKey))
 	if err != nil {
-		return "", "", ErrCreateTokenFailed
+		return "", "", myErr.ErrCreateTokenFailed
 	}
 	return tokenString, jti, nil
 }
@@ -64,20 +66,20 @@ func (j *jwtService) ValidateToken(ctx context.Context, tokenString string) (*My
 	if err != nil {
 		// 检查是否是 token 本身的错误（如过期、未生效）
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return nil, ErrTokenExpired
+			return nil, myErr.ErrTokenExpired
 		}
 		if errors.Is(err, jwt.ErrTokenNotValidYet) {
-			return nil, ErrTokenNotActive
+			return nil, myErr.ErrTokenNotActive
 		}
 		// 其他错误（签名无效、格式错误等）
-		return nil, ErrInvalidToken
+		return nil, myErr.ErrInvalidToken
 	}
 	claims, ok := token.Claims.(*MyClaims)
 	if !ok {
-		return nil, ErrInvalidToken
+		return nil, myErr.ErrInvalidToken
 	}
 	if !token.Valid {
-		return nil, ErrInvalidToken
+		return nil, myErr.ErrInvalidToken
 	}
 	return claims, nil
 }

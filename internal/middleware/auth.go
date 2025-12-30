@@ -2,39 +2,43 @@ package middleware
 
 import (
 	"go-flash-sale/internal/auth"
+	"go-flash-sale/internal/cache"
 	"strings"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
-func AuthMiddleware(c *gin.Context) {
-	token := extractToken(c)
-	// token是否为空
-	if token == "" {
-		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
-		return
+func AuthMiddleware(redis redis.UniversalClient) gin.HandlerFunc {
+	tokenStore := cache.NewTokenCache(redis)
+	return func(c *gin.Context) {
+		token := extractToken(c)
+		// token是否为空
+		if token == "" {
+			c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+			return
+		}
+		// 验证token是否真正有效
+		jwtService := auth.NewJWTService()
+		claims, err := jwtService.ValidateToken(c.Request.Context(), token)
+		if err != nil {
+			c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+			return
+		}
+		//查询reids中token是否存在
+		ok, err := tokenStore.Exists(c.Request.Context(), claims.ID)
+		if err != nil {
+			c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
+			return
+		}
+		if !ok {
+			c.AbortWithStatusJSON(401, gin.H{"error": "Token has expired"})
+			return
+		}
+		// 如果验证成功，可以将用户信息存储在上下文中，供后续处理使用
+		c.Set("claims", claims) // claims 中包含用户id 用户名，用户email
+		c.Next()
 	}
-	// 验证token是否真正有效
-	jwtService := auth.NewJWTService()
-	claims, err := jwtService.ValidateToken(c.Request.Context(), token)
-	if err != nil {
-		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
-		return
-	}
-	//查询reids中token是否存在
-	tokenStore := auth.NewTokenStore()
-	ok, err := tokenStore.Exists(c.Request.Context(), claims.ID)
-	if err != nil {
-		c.AbortWithStatusJSON(401, gin.H{"error": "Unauthorized"})
-		return
-	}
-	if !ok {
-		c.AbortWithStatusJSON(401, gin.H{"error": "Token has expired"})
-		return
-	}
-	// 如果验证成功，可以将用户信息存储在上下文中，供后续处理使用
-	c.Set("claims", claims) // claims 中包含用户id 用户名，用户email
-	c.Next()
 }
 
 // extractToken 从请求中提取 JWT 字符串
